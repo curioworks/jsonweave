@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.jsonweave</groupId>
+    <groupId>io.github.curioworks</groupId>
     <artifactId>jsonweave-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Jsonweave</name>
     <description>Destination-driven, stream-oriented JSON to JSON transformation</description>
-    <url>https://github.com/jsonweave/jsonweave</url>
+    <url>https://github.com/curioworks/jsonweave</url>
 
     <licenses>
         <license>
@@ -31,15 +31,15 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/jsonweave/jsonweave.git</connection>
-        <developerConnection>scm:git:git@github.com:jsonweave/jsonweave.git</developerConnection>
-        <url>https://github.com/jsonweave/jsonweave</url>
+        <connection>scm:git:https://github.com/curioworks/jsonweave.git</connection>
+        <developerConnection>scm:git:git@github.com:curioworks/jsonweave.git</developerConnection>
+        <url>https://github.com/curioworks/jsonweave</url>
         <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/jsonweave/jsonweave/issues</url>
+        <url>https://github.com/curioworks/jsonweave/issues</url>
     </issueManagement>
 
     <modules>
