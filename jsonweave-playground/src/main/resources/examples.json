@@ -1,6 +1,8 @@
 [
   {
     "name": "1 · Copy values into a shape",
+    "description": "The spec is a picture of the output. Objects and arrays in it are literal output structure; a string starting with $. is a path into the input document. Anything else — \"crm\", true, numbers — passes through verbatim. A path that finds nothing simply omits its key.",
+    "covers": ["$.path", "literals", "nested output"],
     "input": {
       "user": {"firstName": "Jane", "lastName": "Doe", "email": "jane@example.com"},
       "orderCount": 3
@@ -15,6 +17,8 @@
   },
   {
     "name": "2 · Text: concat, case, trim, replace, substring",
+    "description": "Value functions take their data as the operation's argument and nest freely — #upper wraps a #concat here. #replace is literal, not regex, and uses #in/#find/#with. #substring uses #of/#start/#end, clamps out-of-range values, and counts negative offsets from the end.",
+    "covers": ["#concat", "#upper", "#lower", "#trim", "#replace", "#substring"],
     "input": {
       "sku": "ab-123-x",
       "first": "jane",
@@ -32,6 +36,8 @@
   },
   {
     "name": "3 · Missing data, defaults, coercion",
+    "description": "Missing paths omit their key rather than emitting null — see how \"omitted\" never appears in the output. #default supplies a fallback for any operation. #literal escapes a value so # keys inside it are treated as data, not as a spec to execute.",
+    "covers": ["#get", "#default", "#toNumber", "#toString", "#literal", "key omission"],
     "input": {
       "price": "19.99",
       "qty": 3,
@@ -48,6 +54,8 @@
   },
   {
     "name": "4 · Conditionals and lookup tables",
+    "description": "#if takes a match object as its condition, with #then/#else branches that are themselves full specs. #lookup maps a value through a table with #on naming the value to look up; #default catches anything not in the table.",
+    "covers": ["#if", "#then", "#else", "#lookup", "#on", "#exists"],
     "input": {
       "name": "jane",
       "age": 34,
@@ -65,6 +73,8 @@
   },
   {
     "name": "5 · Streams: filter and map",
+    "description": "#stream names the source array; stages then run over each element, where @. refers to the current element (as $. still refers to the document root). #map takes either a single path or a whole object template, so you can reshape each element.",
+    "covers": ["#stream", "#filter", "#map", "@.element"],
     "input": {
       "orders": [
         {"id": 1, "total": 250, "status": "SHIPPED"},
@@ -86,6 +96,8 @@
   },
   {
     "name": "6 · Match objects: every operator",
+    "description": "Predicates are plain JSON, Mongo-style. A bare value means equality; an object value applies operators, and several in one object must all hold. #and/#or/#not combine whole predicates. Right-hand sides are expressions too, so a filter can compare against a value from the document root.",
+    "covers": ["#gt", "#gte", "#lt", "#lte", "#eq", "#ne", "#in", "#nin", "#exists", "#and", "#or", "#not"],
     "input": {
       "products": [
         {"name": "laptop", "price": 1200, "tier": "GOLD", "tags": ["sale"]},
@@ -111,6 +123,8 @@
   },
   {
     "name": "7 · Ordering and slicing",
+    "description": "Here the elements are scalars, so \"@\" alone refers to each element itself rather than a field of it. #sortBy takes an element path, or an options object with #path and #order for descending. #skip and #limit paginate; #distinct is numeric-aware, treating 1 and 1.0 as equal.",
+    "covers": ["#sortBy", "#path", "#order", "#skip", "#limit", "#distinct", "#reverse", "\"@\""],
     "input": {
       "scores": [70, 95, 70, 40, 88, 61]
     },
@@ -124,6 +138,8 @@
   },
   {
     "name": "8 · flatMap: flatten nested arrays",
+    "description": "#flatMap maps each element then flattens one level, turning an array of arrays into a flat stream. Empty arrays contribute nothing. Stages compose, so flattening can feed straight into #distinct and #sortBy.",
+    "covers": ["#flatMap", "#distinct", "#sortBy"],
     "input": {
       "posts": [
         {"title": "a", "tags": ["json", "java"]},
@@ -138,6 +154,8 @@
   },
   {
     "name": "9 · Aggregates: sum, avg, min, max, count, join",
+    "description": "Terminals end a pipeline and collapse the stream to one value. #sum/#avg/#min/#max take an element path and skip non-numeric values; #count/#first/#last take \"@\" because the source was already named by #stream. #join takes the separator string.",
+    "covers": ["#sum", "#avg", "#min", "#max", "#count", "#join", "#first", "#last"],
     "input": {
       "sales": [
         {"rep": "jane", "amount": 100},
@@ -158,6 +176,8 @@
   },
   {
     "name": "10 · Testing a stream: any / all / none",
+    "description": "These terminals answer yes/no questions about a stream and return a boolean. Note \"noneSkipped\": because a missing field never satisfies #exists, none of the elements match, so the answer is true.",
+    "covers": ["#anyMatch", "#allMatch", "#noneMatch"],
     "input": {
       "checks": [
         {"name": "build", "passed": true},
@@ -174,6 +194,8 @@
   },
   {
     "name": "11 · groupBy",
+    "description": "#groupBy collects elements into an object keyed by the extracted value, preserving each group's members. Because the result is an object, #entries turns it back into a stream of {key, value} pairs — which is how you post-process groups.",
+    "covers": ["#groupBy", "#entries"],
     "input": {
       "sales": [
         {"region": "EU", "amount": 100},
@@ -189,6 +211,8 @@
   },
   {
     "name": "12 · Terminals without a pipeline",
+    "description": "When you aren't filtering or mapping anything, skip #stream entirely: the terminal takes the data directly as its argument. Available for #count, #first, #last, #distinct, #reverse, #sum, #min, #max and #avg — aggregates then operate on the elements themselves.",
+    "covers": ["standalone terminals", "#count", "#min", "#max", "#sum", "#distinct", "#first", "#last"],
     "input": {
       "shipments": [1, 2, 3, 4],
       "prices": [9.99, 4.5, 12.0, 4.5],
@@ -206,6 +230,8 @@
   },
   {
     "name": "13 · Dynamic keys: entries, toObject, spread",
+    "description": "#spread copies an object's fields into the output, and keys you declare alongside it override what was copied — see how \"products\" replaces the input array with a keyed object. #toObject builds keys from data via #key/#value, and #entries goes the other way, turning an object into a stream of pairs.",
+    "covers": ["#spread", "#toObject", "#key", "#value", "#entries"],
     "input": {
       "id": 17,
       "name": "widget",
@@ -229,6 +255,8 @@
   },
   {
     "name": "14 · Variables (#let) and chaining",
+    "description": "#let computes a value once and binds it to a name; $shipped (no dot) is that variable, while $.shipped (with a dot) would be a field of the document. A spec can also be an array of steps — each step's output becomes the next step's input, so step 2 reads $.shippedRevenue produced by step 1.",
+    "covers": ["#let", "$variable", "chaining"],
     "input": {
       "orders": [
         {"id": 1, "total": 250, "status": "SHIPPED"},
@@ -251,6 +279,8 @@
   },
   {
     "name": "15 · Expressions: named, hybrid, portable",
+    "description": "For logic that outgrows JSON, expressions run code. Store them in a catalog (the Expressions pane) with one entry per dialect, then reference them by name with #expr — the spec never names a dialect, so it stays portable while each runtime picks the engine it has. Inside expressions, root is the document and it is the current element. #mvel is disabled on this public instance because it executes arbitrary Java; #js runs sandboxed.",
+    "covers": ["#expr", "#js", "#mvel", "expression catalogs"],
     "input": {
       "orders": [
         {"id": 1, "total": 250, "tier": "GOLD"},

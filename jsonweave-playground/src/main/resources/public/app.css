@@ -129,3 +129,37 @@ footer {
   pointer-events: none;
 }
 .toast.show { opacity: 1; }
+
+/* Example notes: the gallery doubles as documentation. */
+.doc {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 1rem 0.7rem;
+  flex: 0 0 auto;
+}
+.doc-head { display: flex; align-items: center; gap: 0.5rem; }
+.doc-title { font-weight: 600; font-size: 0.9rem; }
+.doc-nav {
+  margin-left: auto;
+  padding: 0 0.5rem;
+  line-height: 1.4;
+  font-size: 1rem;
+}
+.doc-nav + .doc-nav { margin-left: 0; }
+.doc-nav:disabled { opacity: 0.35; cursor: default; border-color: var(--border); }
+.doc-text {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 100ch;
+}
+.doc-covers { margin-top: 0.45rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.doc-covers .chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
