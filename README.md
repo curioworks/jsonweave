@@ -390,9 +390,22 @@ cat input.json | java -jar ...jsonweave-cli.jar -s spec.json          # stdin �
 ```bash
 # Playground — three live panes (input, spec, output), examples, shareable permalinks
 ./mvnw package -DskipTests
-java -jar jsonweave-playground/target/jsonweave-playground-0.1.0-SNAPSHOT.jar
+java -jar jsonweave-playground/target/jsonweave-playground-*.jar
 # → http://localhost:7070
 ```
+
+### Hosting the playground
+
+A `Dockerfile` is included; the image runs the playground on `$PORT` (default 8080):
+
+```bash
+docker build -t jsonweave-playground .
+docker run --rm -p 8080:8080 jsonweave-playground
+```
+
+`fly.toml` deploys that image to [Fly.io](https://fly.io) (`fly launch --no-deploy --copy-config`, then `fly deploy`); it scales to zero when idle, so a demo instance is free at rest. Any host that runs a container works the same way — set `PORT` and go.
+
+> **Security — read before hosting.** `#mvel` executes arbitrary Java and **cannot** be sandboxed: a public instance with MVEL enabled is a remote-code-execution hole. Both the Dockerfile and `fly.toml` therefore set `JSONWEAVE_MVEL=false`. `#js` runs under GraalJS with host access disabled and stays on. Keep it that way on anything reachable from the internet.
 
 ## Performance
 

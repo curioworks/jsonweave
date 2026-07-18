@@ -1,0 +1,13 @@
+**/target/
+.git/
+.github/
+.idea/
+.vscode/
+.claude/
+.mvn/
+mvnw
+mvnw.cmd
+*.md
+!README.md
+dependency-reduced-pom.xml
+jsonweave-benchmarks/
