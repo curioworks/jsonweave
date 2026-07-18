@@ -1,8 +1,71 @@
 [
   {
-    "name": "Welcome: shape the output you want",
+    "name": "1 · Copy values into a shape",
     "input": {
-      "user": {"firstName": "Jane", "lastName": "Doe"},
+      "user": {"firstName": "Jane", "lastName": "Doe", "email": "jane@example.com"},
+      "orderCount": 3
+    },
+    "spec": {
+      "name": "$.user.firstName",
+      "contact": {"email": "$.user.email"},
+      "orders": "$.orderCount",
+      "source": "crm",
+      "active": true
+    }
+  },
+  {
+    "name": "2 · Text: concat, case, trim, replace, substring",
+    "input": {
+      "sku": "ab-123-x",
+      "first": "jane",
+      "last": "DOE",
+      "padded": "   hello   "
+    },
+    "spec": {
+      "fullName": {"#upper": {"#concat": ["$.first", " ", "$.last"]}},
+      "quiet": {"#lower": "$.last"},
+      "trimmed": {"#trim": "$.padded"},
+      "code": {"#replace": {"#in": "$.sku", "#find": "-", "#with": "_"}},
+      "prefix": {"#substring": {"#of": "$.sku", "#start": 0, "#end": 2}},
+      "lastChar": {"#substring": {"#of": "$.sku", "#start": -1}}
+    }
+  },
+  {
+    "name": "3 · Missing data, defaults, coercion",
+    "input": {
+      "price": "19.99",
+      "qty": 3,
+      "first": "Jane"
+    },
+    "spec": {
+      "priceNumber": {"#toNumber": "$.price"},
+      "qtyText": {"#toString": "$.qty"},
+      "display": {"#get": "$.nickname", "#default": "$.first"},
+      "omitted": "$.doesNotExist",
+      "withFallback": {"#get": "$.doesNotExist", "#default": "n/a"},
+      "notAnOperation": {"#literal": {"#stream": "this is data, not a spec"}}
+    }
+  },
+  {
+    "name": "4 · Conditionals and lookup tables",
+    "input": {
+      "name": "jane",
+      "age": 34,
+      "status": "1"
+    },
+    "spec": {
+      "group": {"#if": {"$.age": {"#gte": 18}}, "#then": "adult", "#else": "minor"},
+      "state": {"#lookup": {"1": "ACTIVE", "2": "RETIRED"}, "#on": "$.status", "#default": "UNKNOWN"},
+      "greeting": {
+        "#if": {"$.name": {"#exists": true}},
+        "#then": {"#concat": ["Hi ", "$.name"]},
+        "#else": "Hi there"
+      }
+    }
+  },
+  {
+    "name": "5 · Streams: filter and map",
+    "input": {
       "orders": [
         {"id": 1, "total": 250, "status": "SHIPPED"},
         {"id": 2, "total": 90, "status": "CANCELLED"},
@@ -10,46 +73,107 @@
       ]
     },
     "spec": {
-      "customerName": {"#concat": ["$.user.firstName", " ", "$.user.lastName"]},
-      "shippedOrderIds": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}, "#map": "@.id"},
-      "spend": {
-        "total": {"#stream": "$.orders", "#sum": "@.total"},
-        "biggest": {
-          "#stream": "$.orders",
-          "#sortBy": {"#path": "@.total", "#order": "desc"},
-          "#map": {"id": "@.id", "amount": "@.total"},
-          "#first": "@"
-        }
+      "shippedIds": {
+        "#stream": "$.orders",
+        "#filter": {"@.status": "SHIPPED"},
+        "#map": "@.id"
+      },
+      "summaries": {
+        "#stream": "$.orders",
+        "#map": {"order": "@.id", "eur": "@.total", "open": {"#if": {"@.status": "SHIPPED"}, "#then": false, "#else": true}}
       }
     }
   },
   {
-    "name": "Filter, sort, paginate",
+    "name": "6 · Match objects: every operator",
     "input": {
       "products": [
-        {"name": "laptop", "price": 1200, "stock": 3},
-        {"name": "mouse", "price": 25, "stock": 0},
-        {"name": "keyboard", "price": 90, "stock": 12},
-        {"name": "monitor", "price": 400, "stock": 5}
+        {"name": "laptop", "price": 1200, "tier": "GOLD", "tags": ["sale"]},
+        {"name": "mouse", "price": 25, "tier": "BRONZE"},
+        {"name": "keyboard", "price": 90, "tier": "SILVER", "tags": []},
+        {"name": "monitor", "price": 400, "tier": "GOLD"}
+      ],
+      "wanted": "GOLD"
+    },
+    "spec": {
+      "midPriced": {"#stream": "$.products", "#filter": {"@.price": {"#gt": 50, "#lte": 500}}, "#map": "@.name"},
+      "premiumTiers": {"#stream": "$.products", "#filter": {"@.tier": {"#in": ["GOLD", "SILVER"]}}, "#map": "@.name"},
+      "notBronze": {"#stream": "$.products", "#filter": {"@.tier": {"#ne": "BRONZE"}}, "#map": "@.name"},
+      "hasTags": {"#stream": "$.products", "#filter": {"@.tags": {"#exists": true}}, "#map": "@.name"},
+      "cheapOrGold": {
+        "#stream": "$.products",
+        "#filter": {"#or": [{"@.price": {"#lt": 50}}, {"@.tier": "GOLD"}]},
+        "#map": "@.name"
+      },
+      "notGold": {"#stream": "$.products", "#filter": {"#not": {"@.tier": "GOLD"}}, "#map": "@.name"},
+      "matchesRootValue": {"#stream": "$.products", "#filter": {"@.tier": "$.wanted"}, "#map": "@.name"}
+    }
+  },
+  {
+    "name": "7 · Ordering and slicing",
+    "input": {
+      "scores": [70, 95, 70, 40, 88, 61]
+    },
+    "spec": {
+      "ascending": {"#stream": "$.scores", "#sortBy": "@"},
+      "topThree": {"#stream": "$.scores", "#sortBy": {"#path": "@", "#order": "desc"}, "#limit": 3},
+      "page2": {"#stream": "$.scores", "#sortBy": "@", "#skip": 2, "#limit": 2},
+      "unique": {"#stream": "$.scores", "#distinct": "@"},
+      "reversed": {"#stream": "$.scores", "#reverse": "@"}
+    }
+  },
+  {
+    "name": "8 · flatMap: flatten nested arrays",
+    "input": {
+      "posts": [
+        {"title": "a", "tags": ["json", "java"]},
+        {"title": "b", "tags": ["java", "streams"]},
+        {"title": "c", "tags": []}
       ]
     },
     "spec": {
-      "inStockByPrice": {
-        "#stream": "$.products",
-        "#filter": {"@.stock": {"#gt": 0}},
-        "#sortBy": "@.price",
-        "#map": {"item": "@.name", "eur": "@.price"}
-      },
-      "cheapestTwo": {
-        "#stream": "$.products",
-        "#sortBy": "@.price",
-        "#limit": 2,
-        "#map": "@.name"
-      }
+      "allTags": {"#stream": "$.posts", "#flatMap": "@.tags"},
+      "uniqueTags": {"#stream": "$.posts", "#flatMap": "@.tags", "#distinct": "@", "#sortBy": "@"}
     }
   },
   {
-    "name": "Aggregate: sum, avg, count, groupBy",
+    "name": "9 · Aggregates: sum, avg, min, max, count, join",
+    "input": {
+      "sales": [
+        {"rep": "jane", "amount": 100},
+        {"rep": "raj", "amount": 250},
+        {"rep": "ada", "amount": 80}
+      ]
+    },
+    "spec": {
+      "revenue": {"#stream": "$.sales", "#sum": "@.amount"},
+      "average": {"#stream": "$.sales", "#avg": "@.amount"},
+      "smallest": {"#stream": "$.sales", "#min": "@.amount"},
+      "largest": {"#stream": "$.sales", "#max": "@.amount"},
+      "deals": {"#stream": "$.sales", "#count": "@"},
+      "team": {"#stream": "$.sales", "#map": "@.rep", "#sortBy": "@", "#join": ", "},
+      "firstRep": {"#stream": "$.sales", "#map": "@.rep", "#first": "@"},
+      "lastRep": {"#stream": "$.sales", "#map": "@.rep", "#last": "@"}
+    }
+  },
+  {
+    "name": "10 · Testing a stream: any / all / none",
+    "input": {
+      "checks": [
+        {"name": "build", "passed": true},
+        {"name": "tests", "passed": true},
+        {"name": "lint", "passed": false}
+      ]
+    },
+    "spec": {
+      "anyFailed": {"#stream": "$.checks", "#anyMatch": {"@.passed": false}},
+      "allPassed": {"#stream": "$.checks", "#allMatch": {"@.passed": true}},
+      "noneSkipped": {"#stream": "$.checks", "#noneMatch": {"@.skipped": {"#exists": true}}},
+      "failures": {"#stream": "$.checks", "#filter": {"@.passed": false}, "#map": "@.name"}
+    }
+  },
+  {
+    "name": "11 · groupBy",
     "input": {
       "sales": [
         {"region": "EU", "amount": 100},
@@ -59,16 +183,33 @@
       ]
     },
     "spec": {
-      "revenue": {"#stream": "$.sales", "#sum": "@.amount"},
-      "averageDeal": {"#stream": "$.sales", "#avg": "@.amount"},
-      "deals": {"#stream": "$.sales", "#count": "@"},
       "byRegion": {"#stream": "$.sales", "#groupBy": "@.region"},
-      "hasBigDeal": {"#stream": "$.sales", "#anyMatch": {"@.amount": {"#gte": 200}}}
+      "regionNames": {"#stream": {"#entries": {"#stream": "$.sales", "#groupBy": "@.region"}}, "#map": "@.key", "#sortBy": "@"}
     }
   },
   {
-    "name": "Dynamic keys: entries & toObject",
+    "name": "12 · Terminals without a pipeline",
     "input": {
+      "shipments": [1, 2, 3, 4],
+      "prices": [9.99, 4.5, 12.0, 4.5],
+      "events": ["created", "paid", "shipped"]
+    },
+    "spec": {
+      "shipmentCount": {"#count": "$.shipments"},
+      "cheapest": {"#min": "$.prices"},
+      "priciest": {"#max": "$.prices"},
+      "spend": {"#sum": "$.prices"},
+      "uniquePrices": {"#distinct": "$.prices"},
+      "latestEvent": {"#last": "$.events"},
+      "firstEvent": {"#first": "$.events"}
+    }
+  },
+  {
+    "name": "13 · Dynamic keys: entries, toObject, spread",
+    "input": {
+      "id": 17,
+      "name": "widget",
+      "price": 10,
       "products": [
         {"sku": "SKU1", "price": 9.99},
         {"sku": "SKU2", "price": 4.5}
@@ -76,52 +217,40 @@
       "scores": {"jane": 91, "raj": 45, "ada": 77}
     },
     "spec": {
-      "priceBySku": {
-        "#stream": "$.products",
-        "#toObject": {"#key": "@.sku", "#value": "@.price"}
-      },
-      "passed": {
-        "#stream": {"#entries": "$.scores"},
-        "#filter": {"@.value": {"#gte": 60}},
-        "#map": "@.key"
-      }
-    }
-  },
-  {
-    "name": "Spread: pass through, tweak a little",
-    "input": {
-      "id": 17,
-      "name": "widget",
-      "price": 10,
-      "status": "1"
-    },
-    "spec": {
       "#spread": "$",
-      "price": {"#toString": "$.price"},
-      "status": {"#lookup": {"1": "ACTIVE", "2": "RETIRED"}, "#on": "$.status", "#default": "UNKNOWN"},
+      "products": {"#stream": "$.products", "#toObject": {"#key": "@.sku", "#value": "@.price"}},
+      "scores": {"#stream": {"#entries": "$.scores"}, "#filter": {"@.value": {"#gte": 60}}, "#map": "@.key", "#sortBy": "@"},
+      "upperKeys": {
+        "#stream": {"#entries": "$.scores"},
+        "#toObject": {"#key": {"#upper": "@.key"}, "#value": "@.value"}
+      },
       "audited": true
     }
   },
   {
-    "name": "Conditionals and value functions",
+    "name": "14 · Variables (#let) and chaining",
     "input": {
-      "users": [
-        {"first": "jane", "last": "doe", "age": 34},
-        {"first": "sam", "last": "lee", "age": 15}
+      "orders": [
+        {"id": 1, "total": 250, "status": "SHIPPED"},
+        {"id": 2, "total": 90, "status": "CANCELLED"},
+        {"id": 3, "total": 120, "status": "SHIPPED"}
       ]
     },
-    "spec": {
-      "badges": {
-        "#stream": "$.users",
-        "#map": {
-          "name": {"#upper": {"#concat": ["@.first", " ", "@.last"]}},
-          "group": {"#if": {"@.age": {"#gte": 18}}, "#then": "adult", "#else": "minor"}
-        }
+    "spec": [
+      {
+        "#let": {"shipped": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}}},
+        "shipped": "$shipped",
+        "shippedRevenue": {"#stream": "$shipped", "#sum": "@.total"},
+        "shippedCount": {"#count": "$shipped"}
+      },
+      {
+        "summary": {"#concat": ["revenue ", "$.shippedRevenue", " across ", "$.shippedCount", " orders"]},
+        "ids": {"#stream": "$.shipped", "#map": "@.id"}
       }
-    }
+    ]
   },
   {
-    "name": "Expressions: named, hybrid, portable",
+    "name": "15 · Expressions: named, hybrid, portable",
     "input": {
       "orders": [
         {"id": 1, "total": 250, "tier": "GOLD"},
@@ -151,26 +280,5 @@
       },
       "inlineJs": {"#js": "root.orders.length + ' orders'"}
     }
-  },
-  {
-    "name": "Variables (#let) and chaining",
-    "input": {
-      "orders": [
-        {"id": 1, "total": 250, "status": "SHIPPED"},
-        {"id": 2, "total": 90, "status": "CANCELLED"},
-        {"id": 3, "total": 120, "status": "SHIPPED"}
-      ]
-    },
-    "spec": [
-      {
-        "#let": {"shipped": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}}},
-        "shipped": "$shipped",
-        "shippedRevenue": {"#stream": "$shipped", "#sum": "@.total"}
-      },
-      {
-        "summary": {"#concat": ["revenue ", "$.shippedRevenue"]},
-        "ids": {"#stream": "$.shipped", "#map": "@.id"}
-      }
-    ]
   }
 ]
