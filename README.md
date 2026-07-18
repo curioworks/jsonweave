@@ -47,6 +47,45 @@ Output:
 }
 ```
 
+## Install
+
+Jsonweave is on Maven Central. The core engine has no dependencies beyond Jackson:
+
+```xml
+<dependency>
+  <groupId>io.github.curioworks</groupId>
+  <artifactId>jsonweave-core</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+```groovy
+// Gradle
+implementation 'io.github.curioworks:jsonweave-core:0.1.0'
+```
+
+The two expression engines are optional add-ons — pull one in only if your specs use `#mvel` or `#js` (see [Expressions](#expressions)):
+
+```xml
+<!-- MVEL: the JVM performance dialect -->
+<dependency>
+  <groupId>io.github.curioworks</groupId>
+  <artifactId>jsonweave-mvel</artifactId>
+  <version>0.1.0</version>
+</dependency>
+
+<!-- JS: the portable dialect (GraalJS, sandboxed) -->
+<dependency>
+  <groupId>io.github.curioworks</groupId>
+  <artifactId>jsonweave-js</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+```java
+JsonNode output = Jsonweave.compile(spec).transform(input);
+```
+
 ## How to read a spec
 
 ### The symbols
