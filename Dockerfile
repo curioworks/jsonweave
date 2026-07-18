@@ -22,7 +22,9 @@ RUN mvn -B -pl jsonweave-playground -am package -DskipTests \
           ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)" /playground.jar
 
 # ---- run ----
-FROM eclipse-temurin:21-jre
+# Full JDK, not -jre: GraalJS/Truffle initialises through JDK-internal module support
+# (ModulesSupport.loadModulesSupportLibrary), which throws InternalError on a JRE image.
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 COPY --from=build /playground.jar app.jar
 
@@ -31,7 +33,7 @@ COPY --from=build /playground.jar app.jar
 ENV JSONWEAVE_MVEL=false \
     JSONWEAVE_JS=true \
     PORT=8080 \
-    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC"
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Dtruffle.TruffleRuntime=com.oracle.truffle.api.impl.DefaultTruffleRuntime"
 
 # Run as a non-root user.
 RUN useradd --system --uid 10001 weave && chown -R weave /app

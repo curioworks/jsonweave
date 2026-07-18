@@ -22,4 +22,4 @@ services:
         value: "true"
       # Free instances have 512MB; keep the JVM heap inside that.
       - key: JAVA_TOOL_OPTIONS
-        value: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k"
+        value: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -Dtruffle.TruffleRuntime=com.oracle.truffle.api.impl.DefaultTruffleRuntime"
