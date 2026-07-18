@@ -1,0 +1,25 @@
+# Render blueprint for the Jsonweave playground (free instance type).
+# Deploy: render.com -> New -> Blueprint -> point at this repo.
+#
+# Free instances sleep after ~15 minutes idle and take ~1 minute to wake, on top of
+# JVM start-up. Fine for a demo you share directly; move to a paid instance (or Fly)
+# if you need a link that responds instantly.
+services:
+  - type: web
+    name: jsonweave-playground
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/examples
+    envVars:
+      - key: PORT
+        value: "8080"
+      # #mvel executes arbitrary Java and cannot be sandboxed - never enable it on a
+      # public host. #js runs sandboxed under GraalJS and stays on.
+      - key: JSONWEAVE_MVEL
+        value: "false"
+      - key: JSONWEAVE_JS
+        value: "true"
+      # Free instances have 512MB; keep the JVM heap inside that.
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k"
