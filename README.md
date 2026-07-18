@@ -3,6 +3,9 @@
 **Declarative JSON-to-JSON transformation: you write the shape of the output.**
 
 [![CI](https://github.com/curioworks/jsonweave/actions/workflows/ci.yml/badge.svg)](https://github.com/curioworks/jsonweave/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.curioworks/jsonweave-core)](https://central.sonatype.com/artifact/io.github.curioworks/jsonweave-core)
+
+**[▶ Try it in the playground](https://jsonweave-playground-932878627041.us-central1.run.app)** — edit an input and a spec, watch the output update live, and share any transformation as a link.
 
 Most transformation tools ask you to describe where each piece of the *input* should go. Jsonweave asks the opposite question: **what should the output look like?** A spec is a picture of the output document. Every object and array in it is literal output structure, and every value says where it comes from — optionally flowing through stream operations (`filter`, `map`, `sortBy`, `sum`, … like Java Streams) on the way. Reading a spec *is* reading the output.
 
