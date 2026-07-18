@@ -1,0 +1,104 @@
+[
+  {
+    "description": "concat joins paths and literals; missing and null parts vanish",
+    "input": {"user": {"firstName": "Jane", "lastName": "Doe"}, "n": 42, "z": null},
+    "spec": {
+      "fullName": {"#concat": ["$.user.firstName", " ", "$.user.lastName"]},
+      "mixed": {"#concat": ["n=", "$.n", "$.z", "$.missing", "!"]}
+    },
+    "expected": {"fullName": "Jane Doe", "mixed": "n=42!"}
+  },
+  {
+    "description": "upper, lower, trim",
+    "input": {"s": "  Hello World  "},
+    "spec": {
+      "upper": {"#upper": "$.s"},
+      "lower": {"#lower": "$.s"},
+      "trim": {"#trim": "$.s"}
+    },
+    "expected": {"upper": "  HELLO WORLD  ", "lower": "  hello world  ", "trim": "Hello World"}
+  },
+  {
+    "description": "replace is literal (not regex)",
+    "input": {"sku": "a-b-c.d"},
+    "spec": {"clean": {"#replace": {"#in": "$.sku", "#find": "-", "#with": "_"}}},
+    "expected": {"clean": "a_b_c.d"}
+  },
+  {
+    "description": "replace parts can come from the document",
+    "input": {"s": "hello world", "target": "world", "repl": "there"},
+    "spec": {"out": {"#replace": {"#in": "$.s", "#find": "$.target", "#with": "$.repl"}}},
+    "expected": {"out": "hello there"}
+  },
+  {
+    "description": "substring clamps out-of-range and supports negative indexes",
+    "input": {"s": "jsonweave"},
+    "spec": {
+      "head": {"#substring": {"#of": "$.s", "#end": 4}},
+      "tail": {"#substring": {"#of": "$.s", "#start": -5}},
+      "mid": {"#substring": {"#of": "$.s", "#start": 4, "#end": 9}},
+      "over": {"#substring": {"#of": "$.s", "#start": 2, "#end": 999}}
+    },
+    "expected": {"head": "json", "tail": "weave", "mid": "weave", "over": "onweave"}
+  },
+  {
+    "description": "toString and toNumber coerce; unparsable numbers go missing",
+    "input": {"n": 42, "s": "42.5", "junk": "not a number", "b": true},
+    "spec": {
+      "str": {"#toString": "$.n"},
+      "num": {"#toNumber": "$.s"},
+      "already": {"#toNumber": "$.n"},
+      "bad": {"#toNumber": "$.junk"},
+      "badOr": {"#toNumber": "$.junk", "#default": 0}
+    },
+    "expected": {"str": "42", "num": 42.5, "already": 42, "badOr": 0}
+  },
+  {
+    "description": "if/then/else on root data with $.-anchored condition keys",
+    "input": {"age": 21},
+    "spec": {"category": {"#if": {"$.age": {"#gte": 18}}, "#then": "adult", "#else": "minor"}},
+    "expected": {"category": "adult"}
+  },
+  {
+    "description": "if without else is missing when false",
+    "input": {"age": 12},
+    "spec": {"category": {"#if": {"$.age": {"#gte": 18}}, "#then": "adult"}, "keep": "yes"},
+    "expected": {"keep": "yes"}
+  },
+  {
+    "description": "if branches can be any expression, and if works per element inside #map",
+    "input": {"orders": [{"id": 1, "total": 250}, {"id": 2, "total": 90}]},
+    "spec": {"labeled": {"#stream": "$.orders",
+                         "#map": {"id": "@.id",
+                                  "size": {"#if": {"@.total": {"#gt": 100}}, "#then": "big", "#else": "small"}}}},
+    "expected": {"labeled": [{"id": 1, "size": "big"}, {"id": 2, "size": "small"}]}
+  },
+  {
+    "description": "lookup translates codes through an inline table",
+    "input": {"status": "1"},
+    "spec": {"status": {"#lookup": {"1": "ACTIVE", "2": "INACTIVE"}, "#on": "$.status", "#default": "UNKNOWN"}},
+    "expected": {"status": "ACTIVE"}
+  },
+  {
+    "description": "lookup falls back to #default on a miss, and matches numbers by text",
+    "input": {"a": "9", "b": 2},
+    "spec": {
+      "miss": {"#lookup": {"1": "ACTIVE"}, "#on": "$.a", "#default": "UNKNOWN"},
+      "numKey": {"#lookup": {"1": "ACTIVE", "2": "INACTIVE"}, "#on": "$.b"}
+    },
+    "expected": {"miss": "UNKNOWN", "numKey": "INACTIVE"}
+  },
+  {
+    "description": "lookup tables can live in the document",
+    "input": {"labels": {"a": "Alpha"}, "code": "a"},
+    "spec": {"label": {"#lookup": "$.labels", "#on": "$.code"}},
+    "expected": {"label": "Alpha"}
+  },
+  {
+    "description": "value ops compose: uppercase a concatenation inside a map",
+    "input": {"users": [{"first": "jane", "last": "doe"}]},
+    "spec": {"names": {"#stream": "$.users",
+                       "#map": {"#upper": {"#concat": ["@.first", " ", "@.last"]}}}},
+    "expected": {"names": ["JANE DOE"]}
+  }
+]

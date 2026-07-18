@@ -1,0 +1,92 @@
+[
+  {
+    "description": "equality and numeric-aware comparison",
+    "input": {"items": [{"n": 1, "s": "a"}, {"n": 1.0, "s": "b"}, {"n": 2, "s": "a"}]},
+    "spec": {
+      "nIsOne": {"#stream": "$.items", "#filter": {"@.n": 1}, "#count": "@"},
+      "sIsA": {"#stream": "$.items", "#filter": {"@.s": "a"}, "#count": "@"}
+    },
+    "expected": {"nIsOne": 2, "sIsA": 2}
+  },
+  {
+    "description": "comparison operators, combinable on one field",
+    "input": {"items": [{"n": 10}, {"n": 50}, {"n": 90}]},
+    "spec": {
+      "gt": {"#stream": "$.items", "#filter": {"@.n": {"#gt": 50}}, "#map": "@.n"},
+      "gte": {"#stream": "$.items", "#filter": {"@.n": {"#gte": 50}}, "#map": "@.n"},
+      "lt": {"#stream": "$.items", "#filter": {"@.n": {"#lt": 50}}, "#map": "@.n"},
+      "lte": {"#stream": "$.items", "#filter": {"@.n": {"#lte": 50}}, "#map": "@.n"},
+      "range": {"#stream": "$.items", "#filter": {"@.n": {"#gt": 10, "#lt": 90}}, "#map": "@.n"},
+      "ne": {"#stream": "$.items", "#filter": {"@.n": {"#ne": 50}}, "#map": "@.n"}
+    },
+    "expected": {"gt": [90], "gte": [50, 90], "lt": [10], "lte": [10, 50], "range": [50], "ne": [10, 90]}
+  },
+  {
+    "description": "in and nin membership",
+    "input": {"items": [{"tier": "GOLD"}, {"tier": "SILVER"}, {"tier": "BRONZE"}, {"noTier": 1}]},
+    "spec": {
+      "in": {"#stream": "$.items", "#filter": {"@.tier": {"#in": ["GOLD", "SILVER"]}}, "#count": "@"},
+      "nin": {"#stream": "$.items", "#filter": {"@.tier": {"#nin": ["GOLD", "SILVER"]}}, "#count": "@"}
+    },
+    "expected": {"in": 2, "nin": 2}
+  },
+  {
+    "description": "missing fields: eq/gt never match, ne and nin do, exists is explicit",
+    "input": {"items": [{"n": 5}, {"other": 1}]},
+    "spec": {
+      "eq": {"#stream": "$.items", "#filter": {"@.n": 5}, "#count": "@"},
+      "ne": {"#stream": "$.items", "#filter": {"@.n": {"#ne": 5}}, "#count": "@"},
+      "gt": {"#stream": "$.items", "#filter": {"@.n": {"#gt": 0}}, "#count": "@"},
+      "has": {"#stream": "$.items", "#filter": {"@.n": {"#exists": true}}, "#count": "@"},
+      "hasNot": {"#stream": "$.items", "#filter": {"@.n": {"#exists": false}}, "#count": "@"}
+    },
+    "expected": {"eq": 1, "ne": 1, "gt": 1, "has": 1, "hasNot": 1}
+  },
+  {
+    "description": "dotted keys reach into nested elements",
+    "input": {"orders": [
+      {"id": 1, "customer": {"tier": "GOLD"}},
+      {"id": 2, "customer": {"tier": "SILVER"}}
+    ]},
+    "spec": {"gold": {"#stream": "$.orders", "#filter": {"@.customer.tier": "GOLD"}, "#map": "@.id"}},
+    "expected": {"gold": [1]}
+  },
+  {
+    "description": "combinators: and, or, not",
+    "input": {"items": [{"n": 1, "s": "a"}, {"n": 2, "s": "a"}, {"n": 3, "s": "b"}]},
+    "spec": {
+      "or": {"#stream": "$.items", "#filter": {"#or": [{"@.n": 1}, {"@.s": "b"}]}, "#map": "@.n"},
+      "and": {"#stream": "$.items", "#filter": {"#and": [{"@.s": "a"}, {"@.n": {"#gt": 1}}]}, "#map": "@.n"},
+      "not": {"#stream": "$.items", "#filter": {"#not": {"@.s": "a"}}, "#map": "@.n"},
+      "implicitAnd": {"#stream": "$.items", "#filter": {"@.s": "a", "@.n": 2}, "#map": "@.n"}
+    },
+    "expected": {"or": [1, 3], "and": [2], "not": [3], "implicitAnd": [2]}
+  },
+  {
+    "description": "right-hand sides are expressions: compare against root data",
+    "input": {"wanted": "SHIPPED", "minTotal": 100, "orders": [
+      {"id": 1, "total": 250, "status": "SHIPPED"},
+      {"id": 2, "total": 90, "status": "SHIPPED"},
+      {"id": 3, "total": 500, "status": "NEW"}
+    ]},
+    "spec": {"ids": {"#stream": "$.orders",
+                     "#filter": {"@.status": "$.wanted", "@.total": {"#gte": "$.minTotal"}},
+                     "#map": "@.id"}},
+    "expected": {"ids": [1]}
+  },
+  {
+    "description": "the @ key matches against the element itself",
+    "input": {"nums": [1, 5, 9]},
+    "spec": {"big": {"#stream": "$.nums", "#filter": {"@": {"#gte": 5}}}},
+    "expected": {"big": [5, 9]}
+  },
+  {
+    "description": "$.-anchored match keys test root values regardless of element",
+    "input": {"flag": true, "nums": [1, 2]},
+    "spec": {
+      "kept": {"#stream": "$.nums", "#filter": {"$.flag": true}},
+      "dropped": {"#stream": "$.nums", "#filter": {"$.flag": false}}
+    },
+    "expected": {"kept": [1, 2], "dropped": []}
+  }
+]

@@ -1,0 +1,152 @@
+[
+  {
+    "description": "unknown operation gets a typo suggestion",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#fliter": {"s": 1}}},
+    "error": {"phase": "compile", "contains": "#filter"}
+  },
+  {
+    "description": "a stream operation without #stream points at the missing source",
+    "input": {},
+    "spec": {"x": {"#map": "@.id"}},
+    "error": {"phase": "compile", "contains": "#stream"}
+  },
+  {
+    "description": "a terminal must be the last operation",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#count": "@", "#map": "@.x"}},
+    "error": {"phase": "compile", "contains": "terminal"}
+  },
+  {
+    "description": "two terminals cannot coexist",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#count": "@", "#sum": "@"}},
+    "error": {"phase": "compile", "contains": "terminal"}
+  },
+  {
+    "description": "bare strings in #map are rejected with guidance",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#map": "id"}},
+    "error": {"phase": "compile", "contains": "@.id"}
+  },
+  {
+    "description": "bare strings in #stream are rejected with guidance",
+    "input": {},
+    "spec": {"x": {"#stream": "orders"}},
+    "error": {"phase": "compile", "contains": "$.orders"}
+  },
+  {
+    "description": "plain output keys cannot mix with operations",
+    "input": {},
+    "spec": {"x": {"name": "$.a", "#upper": "$.b"}},
+    "error": {"phase": "compile", "contains": "mix"}
+  },
+  {
+    "description": "referencing an undeclared variable fails at compile time",
+    "input": {},
+    "spec": {"x": "$undeclared"},
+    "error": {"phase": "compile", "contains": "unknown variable"}
+  },
+  {
+    "description": "#let is only allowed at a spec root",
+    "input": {},
+    "spec": {"x": {"#let": {"a": 1}, "#get": "$.b"}},
+    "error": {"phase": "compile", "contains": "#let", "specPath": "$.x"}
+  },
+  {
+    "description": "malformed paths report the offending spec location",
+    "input": {},
+    "spec": {"out": {"deep": "$.a..b"}},
+    "error": {"phase": "compile", "specPath": "$.out.deep"}
+  },
+  {
+    "description": "#exists requires a boolean",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#filter": {"@.f": {"#exists": "yes"}}}},
+    "error": {"phase": "compile", "contains": "#exists"}
+  },
+  {
+    "description": "#join requires a separator string",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#join": true}},
+    "error": {"phase": "compile", "contains": "separator"}
+  },
+  {
+    "description": "#skip rejects negative counts",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#skip": -1}},
+    "error": {"phase": "compile", "contains": "non-negative"}
+  },
+  {
+    "description": "#sortBy #order validates its values",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#sortBy": {"#path": "@.n", "#order": "down"}}},
+    "error": {"phase": "compile", "contains": "asc"}
+  },
+  {
+    "description": "#chain cannot be combined with sibling keys",
+    "input": {},
+    "spec": {"#chain": [{"a": 1}], "b": 2},
+    "error": {"phase": "compile", "contains": "#chain"}
+  },
+  {
+    "description": "#if requires #then",
+    "input": {},
+    "spec": {"x": {"#if": {"@.a": 1}}},
+    "error": {"phase": "compile", "contains": "#then"}
+  },
+  {
+    "description": "#then without #if is rejected",
+    "input": {},
+    "spec": {"x": {"#get": "$.a", "#then": 1}},
+    "error": {"phase": "compile", "contains": "#then"}
+  },
+  {
+    "description": "#lookup requires #on",
+    "input": {},
+    "spec": {"x": {"#lookup": {"a": 1}}},
+    "error": {"phase": "compile", "contains": "#on"}
+  },
+  {
+    "description": "an expression object cannot hold two operations",
+    "input": {},
+    "spec": {"x": {"#upper": "$.a", "#lower": "$.b"}},
+    "error": {"phase": "compile", "contains": "one operation"}
+  },
+  {
+    "description": "empty chains are rejected",
+    "input": {},
+    "spec": [],
+    "error": {"phase": "compile", "contains": "at least one"}
+  },
+  {
+    "description": "bare field names in match keys are rejected with an anchoring hint",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#filter": {"status": "SHIPPED"}}},
+    "error": {"phase": "compile", "contains": "@.status"}
+  },
+  {
+    "description": "bare field names in extractor arguments are rejected with an anchoring hint",
+    "input": {},
+    "spec": {"x": {"#stream": "$.a", "#sum": "total"}},
+    "error": {"phase": "compile", "contains": "@.total"}
+  },
+  {
+    "description": "#toObject requires both #key and #value",
+    "input": {},
+    "spec": {"x": {"#stream": "$.items", "#toObject": {"#key": "@.k"}}},
+    "error": {"phase": "compile", "contains": "#value"}
+  },
+  {
+    "description": "#toObject rejects unknown options",
+    "input": {},
+    "spec": {"x": {"#stream": "$.items", "#toObject": {"#key": "@.k", "#value": "@.v", "#extra": 1}}},
+    "error": {"phase": "compile", "contains": "#extra"}
+  },
+  {
+    "description": "#toObject rejects container keys at apply time",
+    "input": {"items": [{"k": [1, 2], "v": 1}]},
+    "spec": {"x": {"#stream": "$.items", "#toObject": {"#key": "@.k", "#value": "@.v"}}},
+    "error": {"phase": "apply", "contains": "scalar"}
+  }
+]

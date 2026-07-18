@@ -1,0 +1,104 @@
+[
+  {
+    "description": "leaf path copies a scalar",
+    "input": {"a": {"b": 42}},
+    "spec": {"x": "$.a.b"},
+    "expected": {"x": 42}
+  },
+  {
+    "description": "leaf path copies a whole subtree",
+    "input": {"user": {"name": "Jane", "tags": ["a", "b"]}},
+    "spec": {"person": "$.user"},
+    "expected": {"person": {"name": "Jane", "tags": ["a", "b"]}}
+  },
+  {
+    "description": "plain values are literals emitted as-is",
+    "input": {},
+    "spec": {"s": "hello", "n": 5, "b": true, "z": null, "arr": [1, "two", false], "obj": {"k": "v"}},
+    "expected": {"s": "hello", "n": 5, "b": true, "z": null, "arr": [1, "two", false], "obj": {"k": "v"}}
+  },
+  {
+    "description": "strings that merely start with $ or contain @ are literals",
+    "input": {},
+    "spec": {"price": "$100", "email": "user@example.com", "handle": "@jane"},
+    "expected": {"price": "$100", "email": "user@example.com", "handle": "@jane"}
+  },
+  {
+    "description": "missing paths omit their output key",
+    "input": {"a": 1},
+    "spec": {"x": "$.nope", "y": "$.a", "deep": "$.a.b.c"},
+    "expected": {"y": 1}
+  },
+  {
+    "description": "JSON null in the source is present, not missing",
+    "input": {"n": null},
+    "spec": {"x": "$.n"},
+    "expected": {"x": null}
+  },
+  {
+    "description": "#get with #default literal",
+    "input": {"a": 1},
+    "spec": {"x": {"#get": "$.nope", "#default": 0}},
+    "expected": {"x": 0}
+  },
+  {
+    "description": "#default can itself be a path",
+    "input": {"a": 7},
+    "spec": {"x": {"#get": "$.nope", "#default": "$.a"}},
+    "expected": {"x": 7}
+  },
+  {
+    "description": "#default is ignored when the value is present",
+    "input": {"a": 1},
+    "spec": {"x": {"#get": "$.a", "#default": 99}},
+    "expected": {"x": 1}
+  },
+  {
+    "description": "#literal escapes path-looking strings",
+    "input": {},
+    "spec": {"x": {"#literal": "$.not.a.path"}, "y": {"#literal": {"#stream": "kept verbatim"}}},
+    "expected": {"x": "$.not.a.path", "y": {"#stream": "kept verbatim"}}
+  },
+  {
+    "description": "array indexes, including negative from-the-end",
+    "input": {"items": [{"name": "first"}, {"name": "middle"}, {"name": "last"}]},
+    "spec": {"a": "$.items[0].name", "b": "$.items[-1].name", "c": "$.items[99].name"},
+    "expected": {"a": "first", "b": "last"}
+  },
+  {
+    "description": "bracket-quoted keys reach names with dots",
+    "input": {"a.b": 5, "outer": {"weird key": 6}},
+    "spec": {"x": "$.[\"a.b\"]", "y": "$.outer.[\"weird key\"]"},
+    "expected": {"x": 5, "y": 6}
+  },
+  {
+    "description": "output keys starting with # are escaped with a backslash",
+    "input": {"a": 1},
+    "spec": {"\\#tag": "$.a"},
+    "expected": {"#tag": 1}
+  },
+  {
+    "description": "the spec root can be a single leaf",
+    "input": {"a": {"b": 42}},
+    "spec": "$.a.b",
+    "expected": 42
+  },
+  {
+    "description": "nested output structure needs no counterpart in the input",
+    "input": {"v": 1},
+    "spec": {"a": {"b": {"c": "$.v"}}},
+    "expected": {"a": {"b": {"c": 1}}}
+  },
+  {
+    "description": "array templates evaluate each element and drop missing ones",
+    "input": {"a": 1, "b": 2},
+    "spec": {"arr": ["$.a", "$.nope", "$.b", "kept"]},
+    "expected": {"arr": [1, 2, "kept"]}
+  },
+  {
+    "description": "root document is an array: index into it with $[i]",
+    "input": [10, 20, 30],
+    "spec": {"first": "$[0]", "last": "$[-1]"},
+    "expected": {"first": 10, "last": 30}
+  }
+]

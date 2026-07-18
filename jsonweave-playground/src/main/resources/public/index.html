@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jsonweave Playground</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo">🧵</span>
+      <h1>jsonweave</h1>
+      <span class="tagline">the spec is the output</span>
+    </div>
+    <div class="controls">
+      <select id="examples" title="Load an example"></select>
+      <label class="auto"><input type="checkbox" id="autorun" checked> auto</label>
+      <button id="run" class="primary" title="Ctrl+Enter">Transform ▶</button>
+      <button id="share" title="Copy a shareable link">Share</button>
+      <a class="gh" href="https://github.com/nagaraja-92/jsonweave" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="pane">
+      <div class="pane-title">Input <span class="hint">the source document</span></div>
+      <textarea id="input"></textarea>
+      <div class="pane-title collapsible" id="exprToggle" title="Toggle the expression catalog editor">
+        Expressions <span class="hint">optional · named #expr catalog · click to toggle</span>
+      </div>
+      <div id="exprWrap" hidden>
+        <textarea id="expressions"></textarea>
+      </div>
+    </section>
+    <section class="pane">
+      <div class="pane-title">Spec <span class="hint">shaped like the output · <code>$.</code> root · <code>@.</code> element · <code>#</code> operation</span></div>
+      <textarea id="spec"></textarea>
+    </section>
+    <section class="pane">
+      <div class="pane-title">Output</div>
+      <textarea id="output"></textarea>
+      <div id="error" class="error" hidden></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Destination-driven JSON transformation — you write the shape of the <em>output</em>.</span>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

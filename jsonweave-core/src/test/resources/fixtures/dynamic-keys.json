@@ -1,0 +1,81 @@
+[
+  {
+    "description": "entries streams an object as {key, value} pairs",
+    "input": {"prices": {"SKU1": 9.99, "SKU2": 4.5}},
+    "spec": {"list": {"#entries": "$.prices"}},
+    "expected": {"list": [{"key": "SKU1", "value": 9.99}, {"key": "SKU2", "value": 4.5}]}
+  },
+  {
+    "description": "toObject builds an object with data-driven keys (Jolt's * use case)",
+    "input": {"products": [
+      {"sku": "SKU1", "price": 9.99},
+      {"sku": "SKU2", "price": 4.5}
+    ]},
+    "spec": {"priceBySku": {"#stream": "$.products",
+                            "#toObject": {"#key": "@.sku", "#value": "@.price"}}},
+    "expected": {"priceBySku": {"SKU1": 9.99, "SKU2": 4.5}}
+  },
+  {
+    "description": "entries → toObject re-keys an object; extractors are full expressions",
+    "input": {"prices": {"apple": 1, "banana": 2}},
+    "spec": {"upper": {"#stream": {"#entries": "$.prices"},
+                       "#toObject": {"#key": {"#upper": "@.key"}, "#value": "@.value"}}},
+    "expected": {"upper": {"APPLE": 1, "BANANA": 2}}
+  },
+  {
+    "description": "entries pipelines filter objects by their values",
+    "input": {"scores": {"jane": 91, "raj": 45, "ada": 77}},
+    "spec": {"passed": {"#stream": {"#entries": "$.scores"},
+                        "#filter": {"@.value": {"#gte": 60}},
+                        "#map": "@.key"}},
+    "expected": {"passed": ["jane", "ada"]}
+  },
+  {
+    "description": "toObject handles [key, value] pair arrays with explicit index paths",
+    "input": {"pairs": [["a", 1], ["b", 2]]},
+    "spec": {"obj": {"#stream": "$.pairs", "#toObject": {"#key": "@[0]", "#value": "@[1]"}}},
+    "expected": {"obj": {"a": 1, "b": 2}}
+  },
+  {
+    "description": "toObject skips elements with a missing or null key or a missing value; last duplicate wins",
+    "input": {"items": [
+      {"k": "a", "v": 1},
+      {"noKey": true, "v": 2},
+      {"k": null, "v": 3},
+      {"k": "noValue"},
+      {"k": "a", "v": 9}
+    ]},
+    "spec": {"obj": {"#stream": "$.items", "#toObject": {"#key": "@.k", "#value": "@.v"}}},
+    "expected": {"obj": {"a": 9}}
+  },
+  {
+    "description": "spread copies a source object's fields; sibling keys add and override in declared order",
+    "input": {"user": {"id": 7, "name": "Jane", "role": "admin"}},
+    "spec": {"out": {"#spread": "$.user", "role": "member", "extra": true}},
+    "expected": {"out": {"id": 7, "name": "Jane", "role": "member", "extra": true}}
+  },
+  {
+    "description": "a spread after a plain key overrides it (declared order wins)",
+    "input": {"defaults": {"role": "admin"}},
+    "spec": {"out": {"role": "member", "#spread": "$.defaults"}},
+    "expected": {"out": {"role": "admin"}}
+  },
+  {
+    "description": "spread accepts an array of sources, merged left to right",
+    "input": {"a": {"x": 1, "shared": "fromA"}, "b": {"y": 2, "shared": "fromB"}},
+    "spec": {"merged": {"#spread": ["$.a", "$.b"]}},
+    "expected": {"merged": {"x": 1, "shared": "fromB", "y": 2}}
+  },
+  {
+    "description": "spreading something missing or non-object contributes nothing",
+    "input": {"s": "scalar"},
+    "spec": {"out": {"#spread": ["$.missing", "$.s"], "kept": 1}},
+    "expected": {"out": {"kept": 1}}
+  },
+  {
+    "description": "pass through everything, tweak one field, drop nothing else",
+    "input": {"id": 1, "name": "widget", "price": 10, "internalCode": "X9"},
+    "spec": {"#spread": "$", "price": {"#toString": "$.price"}},
+    "expected": {"id": 1, "name": "widget", "price": "10", "internalCode": "X9"}
+  }
+]

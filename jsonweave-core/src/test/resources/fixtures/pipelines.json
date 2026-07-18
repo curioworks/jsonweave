@@ -1,0 +1,259 @@
+[
+  {
+    "description": "filter then map extracts matching ids",
+    "input": {"orders": [
+      {"id": 1, "total": 250, "status": "SHIPPED"},
+      {"id": 2, "total": 90, "status": "CANCELLED"},
+      {"id": 3, "total": 120, "status": "SHIPPED"}
+    ]},
+    "spec": {"shipped": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}, "#map": "@.id"}},
+    "expected": {"shipped": [1, 3]}
+  },
+  {
+    "description": "map templates mix element (@.) and root ($.) data",
+    "input": {"seller": "ACME", "orders": [{"id": 1}, {"id": 2}]},
+    "spec": {"rows": {"#stream": "$.orders", "#map": {"id": "@.id", "seller": "$.seller"}}},
+    "expected": {"rows": [{"id": 1, "seller": "ACME"}, {"id": 2, "seller": "ACME"}]}
+  },
+  {
+    "description": "stages run in declared order: filter-then-map differs from map-then-filter",
+    "input": {"nums": [{"v": 1}, {"v": 5}, {"v": 9}]},
+    "spec": {
+      "filterFirst": {"#stream": "$.nums", "#filter": {"@.v": {"#gt": 3}}, "#map": "@.v"},
+      "mapFirst": {"#stream": "$.nums", "#map": "@.v", "#filter": {"@": {"#gt": 3}}}
+    },
+    "expected": {"filterFirst": [5, 9], "mapFirst": [5, 9]}
+  },
+  {
+    "description": "no terminal collects the surviving elements",
+    "input": {"orders": [{"id": 1, "status": "SHIPPED"}, {"id": 2, "status": "NEW"}]},
+    "spec": {"open": {"#stream": "$.orders", "#filter": {"@.status": "NEW"}}},
+    "expected": {"open": [{"id": 2, "status": "NEW"}]}
+  },
+  {
+    "description": "sortBy path ascending, with missing keys sorting last",
+    "input": {"items": [{"n": 3}, {"x": 0}, {"n": 1}, {"n": 2}]},
+    "spec": {"sorted": {"#stream": "$.items", "#sortBy": "@.n", "#map": "@.n"}},
+    "expected": {"sorted": [1, 2, 3]}
+  },
+  {
+    "description": "sortBy descending via the object form",
+    "input": {"items": [{"n": 1}, {"n": 3}, {"n": 2}]},
+    "spec": {"sorted": {"#stream": "$.items", "#sortBy": {"#path": "@.n", "#order": "desc"}, "#map": "@.n"}},
+    "expected": {"sorted": [3, 2, 1]}
+  },
+  {
+    "description": "multi-key sort: status ascending then total descending",
+    "input": {"orders": [
+      {"id": 1, "status": "B", "total": 10},
+      {"id": 2, "status": "A", "total": 5},
+      {"id": 3, "status": "A", "total": 50},
+      {"id": 4, "status": "B", "total": 99}
+    ]},
+    "spec": {"ids": {"#stream": "$.orders",
+                     "#sortBy": ["@.status", {"#path": "@.total", "#order": "desc"}],
+                     "#map": "@.id"}},
+    "expected": {"ids": [3, 2, 4, 1]}
+  },
+  {
+    "description": "distinct is numeric-aware: 1 and 1.0 are the same value",
+    "input": {"nums": [1, 2, 2, 3, 1.0, 1]},
+    "spec": {"unique": {"#stream": "$.nums", "#distinct": "@"}},
+    "expected": {"unique": [1, 2, 3]}
+  },
+  {
+    "description": "skip and limit page through results",
+    "input": {"nums": [10, 20, 30, 40, 50]},
+    "spec": {"page": {"#stream": "$.nums", "#skip": 1, "#limit": 2}},
+    "expected": {"page": [20, 30]}
+  },
+  {
+    "description": "reverse",
+    "input": {"nums": [1, 2, 3]},
+    "spec": {"r": {"#stream": "$.nums", "#reverse": "@"}},
+    "expected": {"r": [3, 2, 1]}
+  },
+  {
+    "description": "flatMap @ flattens nested arrays one level",
+    "input": {"nested": [[1, 2], [3], 4]},
+    "spec": {"flat": {"#stream": "$.nested", "#flatMap": "@"}},
+    "expected": {"flat": [1, 2, 3, 4]}
+  },
+  {
+    "description": "flatMap with a path pulls child arrays out of elements",
+    "input": {"orders": [{"tags": ["a", "b"]}, {"notags": 1}, {"tags": ["c"]}]},
+    "spec": {"tags": {"#stream": "$.orders", "#flatMap": "@.tags"}},
+    "expected": {"tags": ["a", "b", "c"]}
+  },
+  {
+    "description": "terminals: first, last, count",
+    "input": {"nums": [7, 8, 9]},
+    "spec": {
+      "first": {"#stream": "$.nums", "#first": "@"},
+      "last": {"#stream": "$.nums", "#last": "@"},
+      "count": {"#stream": "$.nums", "#count": "@"}
+    },
+    "expected": {"first": 7, "last": 9, "count": 3}
+  },
+  {
+    "description": "first and last on an empty stream are missing, #default fills in",
+    "input": {"nums": []},
+    "spec": {
+      "first": {"#stream": "$.nums", "#first": "@"},
+      "firstOr": {"#stream": "$.nums", "#first": "@", "#default": -1}
+    },
+    "expected": {"firstOr": -1}
+  },
+  {
+    "description": "sum, min, max, avg over an extracted key",
+    "input": {"orders": [{"total": 250}, {"total": 90}, {"total": 120}, {"total": 40}]},
+    "spec": {
+      "sum": {"#stream": "$.orders", "#sum": "@.total"},
+      "min": {"#stream": "$.orders", "#min": "@.total"},
+      "max": {"#stream": "$.orders", "#max": "@.total"},
+      "avg": {"#stream": "$.orders", "#avg": "@.total"}
+    },
+    "expected": {"sum": 500, "min": 40, "max": 250, "avg": 125}
+  },
+  {
+    "description": "aggregations with @ operate on the elements themselves",
+    "input": {"nums": [1.5, 2.5, 8]},
+    "spec": {"sum": {"#stream": "$.nums", "#sum": "@"}, "avg": {"#stream": "$.nums", "#avg": "@"}},
+    "expected": {"sum": 12, "avg": 4}
+  },
+  {
+    "description": "sum skips non-numeric values, empty stream sums to 0",
+    "input": {"mixed": [1, "two", 3, null], "empty": []},
+    "spec": {"sum": {"#stream": "$.mixed", "#sum": "@"}, "zero": {"#stream": "$.empty", "#sum": "@"}},
+    "expected": {"sum": 4, "zero": 0}
+  },
+  {
+    "description": "join stringifies and concatenates",
+    "input": {"orders": [{"status": "SHIPPED"}, {"status": "NEW"}], "nums": [1, 2.5]},
+    "spec": {
+      "statuses": {"#stream": "$.orders", "#map": "@.status", "#join": ", "},
+      "nums": {"#stream": "$.nums", "#join": "|"}
+    },
+    "expected": {"statuses": "SHIPPED, NEW", "nums": "1|2.5"}
+  },
+  {
+    "description": "groupBy buckets elements by key, first-seen order",
+    "input": {"orders": [
+      {"id": 1, "status": "SHIPPED"},
+      {"id": 2, "status": "NEW"},
+      {"id": 3, "status": "SHIPPED"}
+    ]},
+    "spec": {"byStatus": {"#stream": "$.orders", "#groupBy": "@.status"}},
+    "expected": {"byStatus": {
+      "SHIPPED": [{"id": 1, "status": "SHIPPED"}, {"id": 3, "status": "SHIPPED"}],
+      "NEW": [{"id": 2, "status": "NEW"}]
+    }}
+  },
+  {
+    "description": "anyMatch, allMatch, noneMatch",
+    "input": {"orders": [{"total": 250}, {"total": 90}]},
+    "spec": {
+      "hasBig": {"#stream": "$.orders", "#anyMatch": {"@.total": {"#gt": 200}}},
+      "allBig": {"#stream": "$.orders", "#allMatch": {"@.total": {"#gt": 200}}},
+      "noneHuge": {"#stream": "$.orders", "#noneMatch": {"@.total": {"#gt": 1000}}}
+    },
+    "expected": {"hasBig": true, "allBig": false, "noneHuge": true}
+  },
+  {
+    "description": "a missing #stream source makes the whole pipeline missing; #default rescues it",
+    "input": {"a": 1},
+    "spec": {
+      "gone": {"#stream": "$.nope", "#map": "@.x"},
+      "rescued": {"#stream": "$.nope", "#map": "@.x", "#default": []}
+    },
+    "expected": {"rescued": []}
+  },
+  {
+    "description": "a scalar #stream source streams as a single element",
+    "input": {"user": {"name": "Jane"}},
+    "spec": {"count": {"#stream": "$.user", "#count": "@"}},
+    "expected": {"count": 1}
+  },
+  {
+    "description": "pipelines nest: a pipeline can be another pipeline's source",
+    "input": {"orders": [
+      {"id": 1, "total": 250, "status": "SHIPPED"},
+      {"id": 2, "total": 90, "status": "SHIPPED"},
+      {"id": 3, "total": 120, "status": "NEW"}
+    ]},
+    "spec": {"topShippedId": {
+      "#stream": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}},
+      "#sortBy": {"#path": "@.total", "#order": "desc"},
+      "#map": "@.id",
+      "#first": "@"
+    }},
+    "expected": {"topShippedId": 1}
+  },
+  {
+    "description": "map results that are missing get dropped",
+    "input": {"items": [{"id": 1}, {"noid": true}, {"id": 3}]},
+    "spec": {"ids": {"#stream": "$.items", "#map": "@.id"}},
+    "expected": {"ids": [1, 3]}
+  },
+  {
+    "description": "the spec root itself can be a pipeline",
+    "input": {"nums": [3, 1, 2]},
+    "spec": {"#stream": "$.nums", "#sortBy": "@"},
+    "expected": [1, 2, 3]
+  },
+  {
+    "description": "standalone form: terminals take their data as the argument, no #stream needed",
+    "input": {"shipments": [{"id": 1}, {"id": 2}, {"id": 3}], "nums": [4, 1, 4], "one": 7},
+    "spec": {
+      "count": {"#count": "$.shipments"},
+      "sum": {"#sum": "$.nums"},
+      "min": {"#min": "$.nums"},
+      "avg": {"#avg": "$.nums"},
+      "firstShipment": {"#first": "$.shipments"},
+      "lastNum": {"#last": "$.nums"},
+      "unique": {"#distinct": "$.nums"},
+      "backwards": {"#reverse": "$.nums"},
+      "scalarCountsAsOne": {"#count": "$.one"}
+    },
+    "expected": {
+      "count": 3, "sum": 9, "min": 1, "avg": 3,
+      "firstShipment": {"id": 1}, "lastNum": 4,
+      "unique": [4, 1], "backwards": [4, 1, 4],
+      "scalarCountsAsOne": 1
+    }
+  },
+  {
+    "description": "standalone form: a missing source is missing, #default rescues, sources can be pipelines",
+    "input": {"orders": [{"total": 5, "vip": true}, {"total": 3, "vip": false}]},
+    "spec": {
+      "gone": {"#count": "$.nope"},
+      "zero": {"#count": "$.nope", "#default": 0},
+      "vipCount": {"#count": {"#stream": "$.orders", "#filter": {"@.vip": true}}}
+    },
+    "expected": {"zero": 0, "vipCount": 1}
+  },
+  {
+    "description": "standalone form rejects bare non-path strings with a hint",
+    "input": {},
+    "spec": {"n": {"#count": "shipments"}},
+    "error": {"phase": "compile", "contains": "$.shipments"}
+  },
+  {
+    "description": "a bare @ outside a pipeline still demands a source",
+    "input": {},
+    "spec": {"n": {"#count": "@"}},
+    "error": {"phase": "compile", "contains": "#stream"}
+  },
+  {
+    "description": "true is not a valid argument; the error teaches the @ spelling",
+    "input": {},
+    "spec": {"n": {"#stream": "$.nums", "#count": true}},
+    "error": {"phase": "compile", "contains": "\"#count\": \"@\""}
+  },
+  {
+    "description": "sortBy no longer accepts true either",
+    "input": {},
+    "spec": {"n": {"#stream": "$.nums", "#sortBy": true}},
+    "error": {"phase": "compile", "contains": "@"}
+  }
+]

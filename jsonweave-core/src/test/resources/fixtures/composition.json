@@ -1,0 +1,74 @@
+[
+  {
+    "description": "#let computes once, referenced many times",
+    "input": {"orders": [
+      {"id": 1, "total": 250, "status": "SHIPPED"},
+      {"id": 2, "total": 90, "status": "CANCELLED"},
+      {"id": 3, "total": 120, "status": "SHIPPED"}
+    ]},
+    "spec": {
+      "#let": {"shipped": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}}},
+      "shippedCount": {"#stream": "$shipped", "#count": "@"},
+      "shippedIds": {"#stream": "$shipped", "#map": "@.id"},
+      "biggest": "$shipped[0].total"
+    },
+    "expected": {"shippedCount": 2, "shippedIds": [1, 3], "biggest": 250}
+  },
+  {
+    "description": "later #let variables can use earlier ones",
+    "input": {"nums": [5, 1, 4]},
+    "spec": {
+      "#let": {
+        "sorted": {"#stream": "$.nums", "#sortBy": "@"},
+        "smallest": "$sorted[0]"
+      },
+      "min": "$smallest",
+      "rest": {"#stream": "$sorted", "#skip": 1}
+    },
+    "expected": {"min": 1, "rest": [4, 5]}
+  },
+  {
+    "description": "a variable that evaluates to missing stays missing where used",
+    "input": {"a": 1},
+    "spec": {"#let": {"gone": "$.nope"}, "x": "$gone", "y": "$.a"},
+    "expected": {"y": 1}
+  },
+  {
+    "description": "a top-level array chains specs: each step's output feeds the next",
+    "input": {"orders": [
+      {"id": 1, "total": 250, "status": "SHIPPED"},
+      {"id": 2, "total": 90, "status": "SHIPPED"},
+      {"id": 3, "total": 500, "status": "NEW"}
+    ]},
+    "spec": [
+      {"shipped": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}}},
+      {"revenue": {"#stream": "$.shipped", "#sum": "@.total"},
+       "orderCount": {"#stream": "$.shipped", "#count": "@"}}
+    ],
+    "expected": {"revenue": 340, "orderCount": 2}
+  },
+  {
+    "description": "the #chain form is equivalent to a top-level array",
+    "input": {"n": 41},
+    "spec": {"#chain": [
+      {"n": "$.n", "plusOne": {"#concat": ["$.n", "+1"]}},
+      {"result": "$.plusOne"}
+    ]},
+    "expected": {"result": "41+1"}
+  },
+  {
+    "description": "each chain step has its own #let scope",
+    "input": {"words": ["b", "a"]},
+    "spec": [
+      {"#let": {"sorted": {"#stream": "$.words", "#sortBy": "@"}}, "first": "$sorted[0]"},
+      {"#let": {"up": {"#upper": "$.first"}}, "out": "$up"}
+    ],
+    "expected": {"out": "A"}
+  },
+  {
+    "description": "nested arrays are templates, not chains",
+    "input": {"a": 1},
+    "spec": {"matrix": [["$.a", 2], [3]]},
+    "expected": {"matrix": [[1, 2], [3]]}
+  }
+]

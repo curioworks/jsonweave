@@ -1,0 +1,176 @@
+[
+  {
+    "name": "Welcome: shape the output you want",
+    "input": {
+      "user": {"firstName": "Jane", "lastName": "Doe"},
+      "orders": [
+        {"id": 1, "total": 250, "status": "SHIPPED"},
+        {"id": 2, "total": 90, "status": "CANCELLED"},
+        {"id": 3, "total": 120, "status": "SHIPPED"}
+      ]
+    },
+    "spec": {
+      "customerName": {"#concat": ["$.user.firstName", " ", "$.user.lastName"]},
+      "shippedOrderIds": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}, "#map": "@.id"},
+      "spend": {
+        "total": {"#stream": "$.orders", "#sum": "@.total"},
+        "biggest": {
+          "#stream": "$.orders",
+          "#sortBy": {"#path": "@.total", "#order": "desc"},
+          "#map": {"id": "@.id", "amount": "@.total"},
+          "#first": "@"
+        }
+      }
+    }
+  },
+  {
+    "name": "Filter, sort, paginate",
+    "input": {
+      "products": [
+        {"name": "laptop", "price": 1200, "stock": 3},
+        {"name": "mouse", "price": 25, "stock": 0},
+        {"name": "keyboard", "price": 90, "stock": 12},
+        {"name": "monitor", "price": 400, "stock": 5}
+      ]
+    },
+    "spec": {
+      "inStockByPrice": {
+        "#stream": "$.products",
+        "#filter": {"@.stock": {"#gt": 0}},
+        "#sortBy": "@.price",
+        "#map": {"item": "@.name", "eur": "@.price"}
+      },
+      "cheapestTwo": {
+        "#stream": "$.products",
+        "#sortBy": "@.price",
+        "#limit": 2,
+        "#map": "@.name"
+      }
+    }
+  },
+  {
+    "name": "Aggregate: sum, avg, count, groupBy",
+    "input": {
+      "sales": [
+        {"region": "EU", "amount": 100},
+        {"region": "US", "amount": 250},
+        {"region": "EU", "amount": 80},
+        {"region": "APAC", "amount": 40}
+      ]
+    },
+    "spec": {
+      "revenue": {"#stream": "$.sales", "#sum": "@.amount"},
+      "averageDeal": {"#stream": "$.sales", "#avg": "@.amount"},
+      "deals": {"#stream": "$.sales", "#count": "@"},
+      "byRegion": {"#stream": "$.sales", "#groupBy": "@.region"},
+      "hasBigDeal": {"#stream": "$.sales", "#anyMatch": {"@.amount": {"#gte": 200}}}
+    }
+  },
+  {
+    "name": "Dynamic keys: entries & toObject",
+    "input": {
+      "products": [
+        {"sku": "SKU1", "price": 9.99},
+        {"sku": "SKU2", "price": 4.5}
+      ],
+      "scores": {"jane": 91, "raj": 45, "ada": 77}
+    },
+    "spec": {
+      "priceBySku": {
+        "#stream": "$.products",
+        "#toObject": {"#key": "@.sku", "#value": "@.price"}
+      },
+      "passed": {
+        "#stream": {"#entries": "$.scores"},
+        "#filter": {"@.value": {"#gte": 60}},
+        "#map": "@.key"
+      }
+    }
+  },
+  {
+    "name": "Spread: pass through, tweak a little",
+    "input": {
+      "id": 17,
+      "name": "widget",
+      "price": 10,
+      "status": "1"
+    },
+    "spec": {
+      "#spread": "$",
+      "price": {"#toString": "$.price"},
+      "status": {"#lookup": {"1": "ACTIVE", "2": "RETIRED"}, "#on": "$.status", "#default": "UNKNOWN"},
+      "audited": true
+    }
+  },
+  {
+    "name": "Conditionals and value functions",
+    "input": {
+      "users": [
+        {"first": "jane", "last": "doe", "age": 34},
+        {"first": "sam", "last": "lee", "age": 15}
+      ]
+    },
+    "spec": {
+      "badges": {
+        "#stream": "$.users",
+        "#map": {
+          "name": {"#upper": {"#concat": ["@.first", " ", "@.last"]}},
+          "group": {"#if": {"@.age": {"#gte": 18}}, "#then": "adult", "#else": "minor"}
+        }
+      }
+    }
+  },
+  {
+    "name": "Expressions: named, hybrid, portable",
+    "input": {
+      "orders": [
+        {"id": 1, "total": 250, "tier": "GOLD"},
+        {"id": 2, "total": 40, "tier": "BRONZE"},
+        {"id": 3, "total": 900, "tier": "SILVER"}
+      ]
+    },
+    "expressions": {
+      "discount": {
+        "mvel": "it.total > 100 ? it.total * 0.9 : it.total",
+        "js": "it.total > 100 ? it.total * 0.9 : it.total"
+      },
+      "isPriority": {
+        "mvel": "it.tier == 'GOLD' || it.total > 500",
+        "js": "it.tier == 'GOLD' || it.total > 500"
+      }
+    },
+    "spec": {
+      "priorityIds": {
+        "#stream": "$.orders",
+        "#filter": {"#expr": "isPriority"},
+        "#map": "@.id"
+      },
+      "netTotals": {
+        "#stream": "$.orders",
+        "#map": {"id": "@.id", "net": {"#expr": "discount"}}
+      },
+      "inlineJs": {"#js": "root.orders.length + ' orders'"}
+    }
+  },
+  {
+    "name": "Variables (#let) and chaining",
+    "input": {
+      "orders": [
+        {"id": 1, "total": 250, "status": "SHIPPED"},
+        {"id": 2, "total": 90, "status": "CANCELLED"},
+        {"id": 3, "total": 120, "status": "SHIPPED"}
+      ]
+    },
+    "spec": [
+      {
+        "#let": {"shipped": {"#stream": "$.orders", "#filter": {"@.status": "SHIPPED"}}},
+        "shipped": "$shipped",
+        "shippedRevenue": {"#stream": "$shipped", "#sum": "@.total"}
+      },
+      {
+        "summary": {"#concat": ["revenue ", "$.shippedRevenue"]},
+        "ids": {"#stream": "$.shipped", "#map": "@.id"}
+      }
+    ]
+  }
+]
